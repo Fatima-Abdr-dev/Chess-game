@@ -5,6 +5,11 @@ Pawn::Pawn(int ri, int ci, COLOR _clr, Board* B)
 {
 
 }
+Pawn::Pawn(const Pawn& _P, Board* b):Piece(_P.P.ri,_P.P.ci,_P.clr,b)
+{
+
+}
+
 void Pawn::draw(int sr, int sc, char sym )
 {
 	int c = 0;

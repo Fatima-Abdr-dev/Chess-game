@@ -4,6 +4,10 @@ Horse::Horse(int ri, int ci, COLOR _clr, Board* B)
 {
 
 }
+Horse::Horse(const Horse& H, Board* b) :Piece(H.P.ri, H.P.ci, H.clr, b)
+{
+
+}
 void Horse::draw(int sr, int sc, char sym )
 {
     int c = 0;

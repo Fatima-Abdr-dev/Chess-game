@@ -9,6 +9,13 @@ bool Piece::islegal(Position D)
 {
 	return true;
 }
+
+Piece::Piece(Piece* Pi)
+{
+	this->B = new Board(*Pi->B);
+	this->clr = Pi->clr;
+	this->P = Pi->P;
+}
 COLOR Piece::getColor()
 {
 	if (this)
@@ -23,7 +30,6 @@ Position Piece::getPositon()
 }
 void Piece::move(Position D)
 {
-	Position temp = P;
 	P = D;
 	
 }

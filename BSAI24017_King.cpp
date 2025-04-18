@@ -4,6 +4,11 @@ King::King(int ri, int ci, COLOR _clr, Board* B)
 {
 
 }
+King::King(const King& k, Board* b) :Piece(k.P.ri,k.P.ci,k.clr,b)
+{
+
+
+}
 void King::draw(int sr, int sc, char sym)
 {
     int c = 0;

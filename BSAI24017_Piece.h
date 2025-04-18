@@ -15,6 +15,7 @@ protected:
 	static bool isDiagonalPathClear(Board* B,Position S, Position D);
 public:
 	Piece(int ri, int ci, COLOR _clr, Board* B);
+	Piece(Piece* P);
 	virtual void draw(int sr, int sc, char sym = -37) = 0;
 	virtual bool islegal(Position D);
 	COLOR getColor();

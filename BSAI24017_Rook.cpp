@@ -4,6 +4,7 @@ Rook::Rook(int ri, int ci, COLOR _clr, Board* B)
 {
 
 }
+Rook::Rook(const Rook& R, Board* b):Piece(R.P.ri,R.P.ci,R.clr,b){}
 void Rook::draw(int sr, int sc, char sym )
 {
     int c=0;

@@ -4,6 +4,10 @@ Queen::Queen(int ri, int ci, COLOR _clr, Board* B)
 {
 
 }
+Queen::Queen(const Queen& _Q, Board* B) :Rook(_Q.P.ri, _Q.P.ci, _Q.clr, B), Bishop(_Q.P.ri, _Q.P.ci, _Q.clr, B),Piece(_Q.P.ri, _Q.P.ci, _Q.clr, B)
+{
+
+}
 void Queen::draw(int sr, int sc, char sym)
 {
     int c = 0;

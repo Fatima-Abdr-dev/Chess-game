@@ -1,5 +1,6 @@
 #include "BSAI24017_Board.h"
 #include"BSAI24017_Header.h"
+#include<fstream>
 void Board::getCoordinates(Position& P)
 {
 	getRowColbyLeftClick(P.ri, P.ci);
@@ -25,9 +26,25 @@ bool Board::isValidDestination(Position P)
 	
 		return true;
 }
-Board::Board() :Turn{ PBLACK }
+Board::Board() :Turn{ PBLACK },Ps{nullptr},legal_board{false}
 {
-
+	int choice=0;
+	cout << "1.New Game" << endl;
+	cout << "2.Saved Game" << endl;
+	cout << "Enter the choice" << endl;
+	cin >> choice;
+	switch (choice)
+	{
+	case 1:
+		init();
+		break;
+	case 2:
+		read_from_file();
+	}
+}
+void Board::init()
+{
+	initialize_with_false();
 	for (int i = 0;i < 8;i++)
 	{
 		for (int c = 0;c < 8;c++)
@@ -85,53 +102,6 @@ void Board::Print_updated_board( Position S, Position D)
 	color(7);
 
 }
-
-void Board::play()
-{
-	Ply[0].take_name();
-	Ply[1].take_name();
-	Ply[0].set_clr(PBLACK);
-	Ply[1].set_clr(PWHITE);
-	system("cls");
-	Position S{}, D{};
-	boarder(12, 12);
-	DisplayGrid(12, 12);
-	this->displayBoard();
-	while (true)
-	{
-		Ply[Turn].display_message();
-		do {
-			do
-			{
-				do
-				{
-					highlight(7);
-					getCoordinates(S);
-				} while (!isValidSource(S));
-				compute_legal_moves(S);
-				highlight(5);
-				getCoordinates(D);
-			} while (!isValidDestination(D));
-		} while (this->legal_board[D.ri][D.ci]==false);
-		highlight(7);
-		Ps[S.ri][S.ci]->move(D);
-		this->update(S, D);
-		this->Print_updated_board(S,D);
-		if (this->is_check())
-		{
-			gotoRowCol(10, 130);
-			cout << "bhaoooo....you are in danger ";
-		}
-		else
-		{
-			gotoRowCol(10, 130);
-			cout << "                              ";
-		}
-		change_turn();
-		hideConsoleCursor();
-	}
-
-}
 void Board::displayBoard()
 {
 	for (int ri = 0;ri < 8;ri++)
@@ -176,10 +146,11 @@ void Board::compute_legal_moves(Position S)
 		{
 			if (isValidDestination({ i,c }) and Ps[S.ri][S.ci]->islegal({ i,c }))
 			{
-				this->Copying(Copy_Board.Ps);
+				this->Copying(Copy_Board);
+				Copy_Board.Ps[S.ri][S.ci]->move({i,c});
 				Copy_Board.update({ S.ri,S.ci }, { i,c });
 				if(!Copy_Board.is_selfcheck())
-					legal_board[i][c] = true;
+					this->legal_board[i][c] = true;
 			}
 		}
 	}
@@ -263,10 +234,13 @@ bool Board::is_stale_mate()
 					{
 						if (isValidDestination({ r,c }) and Ps[ri][ci]->islegal({ r, c }))
 						{
-							this->Copying(Copy_Board.Ps);
+							this->Copying(Copy_Board);
 							Copy_Board.update({ ri,ci }, { r,c });
 							if (!Copy_Board.is_selfcheck())
+							{
+								change_turn();
 								return false;
+							}
 						}
 					}
 
@@ -277,7 +251,7 @@ bool Board::is_stale_mate()
 	change_turn();
 	return true;
 }
-void Board::Copying(Piece* Copy_Board[8][8])
+void Board::Copying(Board &Copy_Board)
 {
 	for (int i = 0;i < 8;i++)
 	{
@@ -290,21 +264,22 @@ void Board::Copying(Piece* Copy_Board[8][8])
 			Horse* H = dynamic_cast<Horse*> (this->Ps[i][c]);
 			Rook* R = dynamic_cast<Rook*> (this->Ps[i][c]);
 			if (K)
-				Copy_Board[i][c] = new King(*K);
+				Copy_Board.Ps[i][c] = new King(*K, & Copy_Board);
 			else if (Q)
-				Copy_Board[i][c] = new Queen(*Q);
+				Copy_Board.Ps[i][c] = new Queen(*Q, &Copy_Board);
 			else if (H)
-				Copy_Board[i][c] = new Horse(*H);
+				Copy_Board.Ps[i][c] = new Horse(*H, &Copy_Board);
 			else if (P)
-				Copy_Board[i][c] = new Pawn(*P);
+				Copy_Board.Ps[i][c] = new Pawn(*P, &Copy_Board);
 			else if (B)
-				Copy_Board[i][c] = new Bishop(*B);
+				Copy_Board.Ps[i][c] = new Bishop(*B, &Copy_Board);
 			else if (R)
-				Copy_Board[i][c] = new Rook(*R);
+				Copy_Board.Ps[i][c] = new Rook(*R, &Copy_Board);
 			else 
-				Copy_Board[i][c] = nullptr;
+				Copy_Board.Ps[i][c] = nullptr;
 		}
 	}
+	Copy_Board.Turn = this->Turn;
 }
 bool Board::is_check_mate()
 {
@@ -322,11 +297,14 @@ bool Board::is_check_mate()
 					{
 						if (isValidDestination({ r,c }) and Ps[ri][ci]->islegal({ r, c }))
 						{
-							this->Copying(Copy_Board.Ps);
+							this->Copying(Copy_Board);
 							Copy_Board.Ps[ri][ci]->move({ r,c });
 							Copy_Board.update({ri,ci}, {r,c});
 							if (!Copy_Board.is_selfcheck())
+							{
+								change_turn();
 								return false;
+							}
 						}
 					}
 
@@ -337,4 +315,346 @@ bool Board::is_check_mate()
 	change_turn();
 	return true;
 
+}
+void menu()
+{
+	int rows = 120, cols = 200;
+	int r = rows * 0.65, c = cols * 0.65;
+	gotoRowCol(r, c);
+	cout << "1.Queen" << endl;
+	cout << endl;
+	gotoRowCol(r + 1, c);
+	cout << "2.Rook" << endl;
+	cout << endl;
+	gotoRowCol(r + 2, c);
+	cout << "3.Horse" << endl;
+	cout << endl;
+	gotoRowCol(r + 3, c);
+	cout << "4.Bishop" << endl;
+	cout << endl;
+	gotoRowCol(r + 4, c);
+	cout << "5.Me Razi hon Pawn per" << endl;
+}
+void Board::Switchcase(int choice, Position P, COLOR _T)
+{
+	int rows = 120, cols = 200;
+	int r = rows * 0.65, c = cols * 0.65;
+	switch (choice)
+	{
+	case 1:
+		if (Ps[P.ri][P.ci] != nullptr)
+			delete Ps[P.ri][P.ci];
+		this->Ps[P.ri][P.ci] = new Queen(P.ri, P.ci, _T, this);
+		gotoRowCol(r, c);
+		cout << "          " << endl;
+		cout << endl;
+		gotoRowCol(r + 1, c);
+		cout << "           " << endl;
+		cout << endl;
+		gotoRowCol(r + 2, c);
+		cout << "           " << endl;
+		cout << endl;
+		gotoRowCol(r + 3, c);
+		cout << "          " << endl;
+		cout << endl;
+		gotoRowCol(r + 4, c);
+		cout << "                     " << endl;
+		break;
+	case 2:
+		if (Ps[P.ri][P.ci] != nullptr)
+			delete Ps[P.ri][P.ci];
+		this->Ps[P.ri][P.ci] = new Rook(P.ri, P.ci, _T, this);
+		gotoRowCol(r, c);
+		cout << "         " << endl;
+		cout << endl;
+		gotoRowCol(r + 1, c);
+		cout << "		 " << endl;
+		cout << endl;
+		gotoRowCol(r + 2, c);
+		cout << "			  " << endl;
+		cout << endl;
+		gotoRowCol(r + 3, c);
+		cout << "			" << endl;
+		cout << endl;
+		gotoRowCol(r + 4, c);
+		cout << "				          " << endl;
+		break;
+	case 3:
+		if (Ps[P.ri][P.ci] != nullptr)
+			delete Ps[P.ri][P.ci];
+		this->Ps[P.ri][P.ci] = new Horse(P.ri, P.ci, _T, this);
+		gotoRowCol(r, c);
+		cout << "			" << endl;
+		cout << endl;
+		gotoRowCol(r + 1, c);
+		cout << "			" << endl;
+		cout << endl;
+		gotoRowCol(r + 2, c);
+		cout << "				" << endl;
+		cout << endl;
+		gotoRowCol(r + 3, c);
+		cout << "			 " << endl;
+		cout << endl;
+		gotoRowCol(r + 4, c);
+		cout << "				          " << endl;
+		break;
+	case 4:
+		if (Ps[P.ri][P.ci] != nullptr)
+			delete Ps[P.ri][P.ci];
+		this->Ps[P.ri][P.ci] = new Bishop(P.ri, P.ci, _T, this);
+		gotoRowCol(r, c);
+		cout << "		    " << endl;
+		cout << endl;
+		gotoRowCol(r + 1, c);
+		cout << "			" << endl;
+		cout << endl;
+		gotoRowCol(r + 2, c);
+		cout << "				" << endl;
+		cout << endl;
+		gotoRowCol(r + 3, c);
+		cout << "					" << endl;
+		cout << endl;
+		gotoRowCol(r + 4, c);
+		cout << "						  " << endl;
+		break;
+	case 5:
+		gotoRowCol(r, c);
+		cout << "				" << endl;
+		cout << endl;
+		gotoRowCol(r + 1, c);
+		cout << "		 " << endl;
+		cout << endl;
+		gotoRowCol(r + 2, c);
+		cout << "			   " << endl;
+		cout << endl;
+		gotoRowCol(r + 3, c);
+		cout << "			  " << endl;
+		cout << endl;
+		gotoRowCol(r + 4, c);
+		cout << "                     " << endl;
+		break;
+	}
+}
+void Board::Promotion()
+{
+	int choice = 0;
+	for (int ri = 0;ri < 8;ri++)
+	{
+		for (int ci = 0;ci < 8;ci++)
+		{
+			Pawn* P = dynamic_cast<Pawn*>(Ps[ri][ci]);
+			if (P and ri == 0 and P->getColor()==PWHITE)
+			{
+				menu();
+				cin>>choice;
+				Switchcase(choice, { ri,ci }, PWHITE);
+				return;
+			}
+			else if (P and ri == 7 and P->getColor() == PBLACK)
+			{
+				menu();
+				cin >> choice;
+				Switchcase(choice, { ri,ci }, PWHITE);
+				return;
+			}
+		}
+	}
+}
+bool Board::isPromotion()
+{
+	for (int ci = 0;ci < 8;ci++)
+	{
+		Pawn* P = dynamic_cast<Pawn*>(Ps[0][ci]);
+		if (P and P->getColor() == Turn)
+			return true;
+	}
+	for (int ci = 0;ci < 8;ci++)
+	{
+		Pawn* P = dynamic_cast<Pawn*>(Ps[7][ci]);
+		if (P and P->getColor() == Turn)
+			return true;
+	}
+	return false;
+}
+void Board::save_in_file()
+{
+	ofstream wr("Board.txt");
+	for (int i = 0;i < 8;i++)
+	{
+		for (int c = 0;c < 8;c++)
+		{
+			King* K = dynamic_cast<King*> (this->Ps[i][c]);
+			Pawn* P = dynamic_cast<Pawn*> (this->Ps[i][c]);
+			Queen* Q = dynamic_cast<Queen*> (this->Ps[i][c]);
+			Bishop* B = dynamic_cast<Bishop*> (this->Ps[i][c]);
+			Horse* H = dynamic_cast<Horse*> (this->Ps[i][c]);
+			Rook* R = dynamic_cast<Rook*> (this->Ps[i][c]);
+			if (K)
+			{
+				if (K->getColor() == PBLACK)
+					wr << "K";
+				else
+					wr << "k";
+			}
+			else if (Q)
+			{
+				if (Q->getColor() == PBLACK)
+					wr << "Q";
+				else
+					wr << "q";
+			}
+			else if (H)
+			{
+				if (H->getColor() == PBLACK)
+					wr << "H";
+				else
+					wr << "h";
+			}
+			else if (P)
+			{
+				if (P->getColor() == PBLACK)
+					wr << "P";
+				else
+					wr << "p";
+			}
+			else if (B)
+			{
+				if (B->getColor() == PBLACK)
+					wr << "B";
+				else
+					wr << "b";
+			}
+			else if (R)
+			{
+				if (B->getColor() == PBLACK)
+					wr << "B";
+				else
+					wr << "b";
+			}
+			else
+				wr << "_";
+		}
+	}
+	if (Turn == PBLACK)
+		wr << 0;
+	else
+		wr << 1;
+}
+void Board::read_from_file()
+{
+	ifstream rd("Board.txt");
+	char sym=0;
+	for (int i = 0;i < 8;i++)
+	{
+		for (int c = 0;c < 8;c++)
+		{
+			rd >> sym;
+			switch (sym)
+			{
+			case 'K':
+				this->Ps[i][c] = new King(i, c, PBLACK, this);
+				break;
+			case 'Q':
+				this->Ps[i][c] = new Queen(i, c, PBLACK, this);
+				break;
+			case 'H':
+				this->Ps[i][c] = new Horse(i, c, PBLACK, this);
+				break;
+			case 'B':
+				this->Ps[i][c] = new Bishop(i, c, PBLACK, this);
+				break;
+			case 'R':
+				this->Ps[i][c] = new Rook(i, c, PBLACK, this);
+				break;
+			case 'P':
+				this->Ps[i][c] = new Pawn(i, c, PBLACK, this);
+				break;
+			case 'k':
+				this->Ps[i][c] = new King(i, c, PWHITE, this);
+				break;
+			case 'q':
+				this->Ps[i][c] = new Queen(i, c, PWHITE, this);
+				break;
+			case 'h':
+				this->Ps[i][c] = new Horse(i, c, PWHITE, this);
+				break;
+			case 'b':
+				this->Ps[i][c] = new Bishop(i, c, PWHITE, this);
+				break;
+			case 'r':
+				this->Ps[i][c] = new Rook(i, c, PWHITE, this);
+				break;
+			case 'p':
+				this->Ps[i][c] = new Pawn(i, c, PWHITE, this);
+				break;
+			default:
+				this->Ps[i][c] = nullptr;
+				break;
+			}
+		}
+	}
+	rd >> sym;
+	if (sym == 1)
+	{
+		Turn = PWHITE;
+	}
+	else
+		Turn = PBLACK;
+}
+void Board::play()
+{
+	Ply[0].take_name();
+	Ply[1].take_name();
+	Ply[0].set_clr(PBLACK);
+	Ply[1].set_clr(PWHITE);
+	system("cls");
+	Position S{}, D{};
+	boarder(12, 12);
+	DisplayGrid(12, 12);
+	this->displayBoard();
+	while (true)
+	{
+		Ply[Turn].display_message();
+		do {
+			do
+			{
+				do
+				{
+					highlight(7);
+					getCoordinates(S);
+				} while (!isValidSource(S));
+				compute_legal_moves(S);
+				highlight(5);
+				getCoordinates(D);
+			} while (!isValidDestination(D));
+		} while (this->legal_board[D.ri][D.ci] == false);
+		highlight(7);
+		Ps[S.ri][S.ci]->move(D);
+		this->update(S, D);
+		this->Print_updated_board(S, D);
+		if (isPromotion())
+		{
+			Promotion();
+			//system("cls");
+			this->Print_updated_board(S, D);
+		}
+		if (this->is_check())
+		{
+			gotoRowCol(10, 130);
+			cout << "bhaoooo....you are in danger ";
+		}
+		else
+		{
+			gotoRowCol(10, 130);
+			cout << "                              ";
+		}
+		if (is_check_mate())
+		{
+			gotoRowCol(15, 130);
+			cout << "GAME OVER";
+			break;
+		}
+		change_turn();
+		hideConsoleCursor();
+	}
 }

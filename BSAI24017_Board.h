@@ -14,13 +14,13 @@ class Board
 	COLOR Turn;
 	bool legal_board[8][8];
 	Player Ply[2];
-	static Board b;
 	static void getCoordinates(Position& P);
 	bool isValidSource(Position P);
 	bool isValidDestination(Position P);
 	void initialize_with_false();
 	void highlight(int a);
 	void IsOpponentKing(Position &K);
+	void Switchcase(int choice, Position P, COLOR _T);
 public:
 	Board();
 	void play();
@@ -34,6 +34,11 @@ public:
 	bool is_selfcheck();
 	bool is_stale_mate();
 	bool is_check_mate();
-	void Copying(Piece* Copy_Board[8][8]);
+	void Copying(Board &Copy_Board);
+	void Promotion();
+	bool isPromotion();
+	void save_in_file();
+	void read_from_file();
+
 };
 

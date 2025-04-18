@@ -3,6 +3,7 @@
 class Bishop :virtual public Piece
 {
 public:
+	Bishop(const Bishop& B,Board* b);
 	Bishop(int ri, int ci, COLOR _clr, Board* B);
 	virtual void draw(int sr, int sc, char sym = -37);
 	virtual bool islegal(Position D);

@@ -4,6 +4,10 @@ Bishop::Bishop(int ri, int ci, COLOR _clr, Board* B)
 {
 
 }
+Bishop::Bishop(const Bishop& B, Board* b):Piece(B.P.ri,B.P.ci,B.clr,b)
+{
+
+}
 void Bishop::draw(int sr, int sc, char sym)
 {
     int c = 0;
