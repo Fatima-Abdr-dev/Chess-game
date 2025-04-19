@@ -21,6 +21,9 @@ class Board
 	void highlight(int a);
 	void IsOpponentKing(Position &K);
 	void Switchcase(int choice, Position P, COLOR _T);
+	void save_in_file();
+	void read_from_file();
+	void init();
 public:
 	Board();
 	void play();
@@ -37,8 +40,5 @@ public:
 	void Copying(Board &Copy_Board);
 	void Promotion();
 	bool isPromotion();
-	void save_in_file();
-	void read_from_file();
-
 };
 

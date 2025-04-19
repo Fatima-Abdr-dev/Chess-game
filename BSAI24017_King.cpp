@@ -1,6 +1,7 @@
 #include "BSAI24017_King.h"
+#include"BSAI24017_Board.h"
 King::King(int ri, int ci, COLOR _clr, Board* B)
-	:Piece{ ri,ci,_clr,B }
+	:Piece{ ri,ci,_clr,B }, ismoved{ false }
 {
 
 }
@@ -86,4 +87,21 @@ bool King::islegal(Position D)
 	return ( dr==1 or dc==1 )and ((isDiagonal(this->P, D) and isDiagonalPathClear(this->B, this->P, D))
 		or (isVertical(this->P, D) and isVerticalPathClear(this->B, this->P, D))
 		or (isHorizontal(this->P, D) and isHorizontalPathClear(this->B, this->P, D)));
+}
+void King::moved()
+{
+    ismoved = true;
+}
+bool King::get_ismoved()
+{
+    return ismoved;
+}
+bool King::castling(Position D,Board* B)
+{
+    Rook* R=dynamic_cast<Rook*> (B->PieceAt(D));
+    if (R and !R->get_ismoved() and R->getColor()==clr and isHorizontal(this->P,D) and isHorizontalPathClear(B,this->P,D))
+    {
+        return true;
+    }
+    return false;
 }

@@ -138,3 +138,11 @@ bool Piece::isDiagonalPathClear(Board* B, Position S, Position D)
 	}
 	return true;
 }
+void Piece::moved()
+{
+	
+}
+bool  Piece::castling(Position D, Board* B)
+{
+	return false;
+}

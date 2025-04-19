@@ -1,6 +1,7 @@
 #include "BSAI24017_Rook.h"
+#include"BSAI24017_Board.h"
 Rook::Rook(int ri, int ci, COLOR _clr, Board* B)
-	:Piece{ ri,ci,_clr,B }
+	:Piece{ ri,ci,_clr,B },ismoved{ false }
 {
 
 }
@@ -66,4 +67,21 @@ bool Rook::islegal(Position D)
 {
 	return (isVertical(this->P, D) and isVerticalPathClear(this->B, this->P, D))
 		or (isHorizontal(this->P, D) and isHorizontalPathClear(this->B, this->P, D));
+}
+void Rook::moved()
+{
+    ismoved = true;
+}
+bool Rook::get_ismoved()
+{
+    return ismoved;
+}
+bool  Rook::castling(Position D, Board* B)
+{
+    King* R = dynamic_cast<King*> (B->PieceAt(D));
+    if (R and !R->get_ismoved() and R->getColor() == clr and isHorizontal(this->P, D) and isHorizontalPathClear(B, this->P, D))
+    {
+        return true;
+    }
+    return false;
 }

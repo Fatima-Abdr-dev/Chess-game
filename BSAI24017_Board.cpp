@@ -1,6 +1,7 @@
 #include "BSAI24017_Board.h"
 #include"BSAI24017_Header.h"
 #include<fstream>
+bool is_Castling = false;
 void Board::getCoordinates(Position& P)
 {
 	getRowColbyLeftClick(P.ri, P.ci);
@@ -28,19 +29,7 @@ bool Board::isValidDestination(Position P)
 }
 Board::Board() :Turn{ PBLACK },Ps{nullptr},legal_board{false}
 {
-	int choice=0;
-	cout << "1.New Game" << endl;
-	cout << "2.Saved Game" << endl;
-	cout << "Enter the choice" << endl;
-	cin >> choice;
-	switch (choice)
-	{
-	case 1:
-		init();
-		break;
-	case 2:
-		read_from_file();
-	}
+	init();
 }
 void Board::init()
 {
@@ -99,7 +88,12 @@ void Board::Print_updated_board( Position S, Position D)
 		c = 3;
 	color(c);
 	Ps[D.ri][D.ci]->draw(D.ri * 12 + 12 / 2, D.ci * 12 + 12 / 2);
+	if (is_Castling and Ps[S.ri][S.ci]!=nullptr)
+	{
+		Ps[S.ri][S.ci]->draw(S.ri * 12 + 12 / 2, S.ci * 12 + 12 / 2);
+	}
 	color(7);
+
 
 }
 void Board::displayBoard()
@@ -144,13 +138,28 @@ void Board::compute_legal_moves(Position S)
 	{
 		for (int c = 0;c < 8;c++)
 		{
-			if (isValidDestination({ i,c }) and Ps[S.ri][S.ci]->islegal({ i,c }))
+			King* K = dynamic_cast<King*>(this->Ps[S.ri][S.ci]);
+			Rook* R = dynamic_cast<Rook*>(this->Ps[S.ri][S.ci]);
+			if(K and K->castling({ i,c }, this) or (R and R->castling({ i,c }, this) and !Copy_Board.is_selfcheck()))
+			{
+				is_Castling = true;
+				this->Copying(Copy_Board);
+				Copy_Board.Ps[S.ri][S.ci]->move({ i,c });
+				Copy_Board.update({ S.ri,S.ci }, { i,c });
+				if (!Copy_Board.is_selfcheck())
+				{
+					this->legal_board[i][c] = true;
+				}
+			}
+			if ( isValidDestination({ i,c }) and Ps[S.ri][S.ci]->islegal({ i,c }))
 			{
 				this->Copying(Copy_Board);
-				Copy_Board.Ps[S.ri][S.ci]->move({i,c});
+				Copy_Board.Ps[S.ri][S.ci]->move({ i,c });
 				Copy_Board.update({ S.ri,S.ci }, { i,c });
-				if(!Copy_Board.is_selfcheck())
+				if (!Copy_Board.is_selfcheck())
+				{
 					this->legal_board[i][c] = true;
+				}
 			}
 		}
 	}
@@ -526,10 +535,10 @@ void Board::save_in_file()
 			}
 			else if (R)
 			{
-				if (B->getColor() == PBLACK)
-					wr << "B";
+				if (R->getColor() == PBLACK)
+					wr << "R";
 				else
-					wr << "b";
+					wr << "r";
 			}
 			else
 				wr << "_";
@@ -603,6 +612,21 @@ void Board::read_from_file()
 }
 void Board::play()
 {
+	int choice = 0;
+	cout << "1.New Game" << endl;
+	cout << "2.Saved Game" << endl;
+	cout << "Enter the choice" << endl;
+	cin >> choice;
+	switch (choice)
+	{
+	case 1:
+		init();
+		break;
+	case 2:
+		read_from_file();
+		break;
+	}
+	system("cls");
 	Ply[0].take_name();
 	Ply[1].take_name();
 	Ply[0].set_clr(PBLACK);
@@ -612,10 +636,13 @@ void Board::play()
 	boarder(12, 12);
 	DisplayGrid(12, 12);
 	this->displayBoard();
+	King* K{};
+	Rook* R{};
 	while (true)
 	{
 		Ply[Turn].display_message();
 		do {
+			is_Castling = false;
 			do
 			{
 				do
@@ -626,16 +653,67 @@ void Board::play()
 				compute_legal_moves(S);
 				highlight(5);
 				getCoordinates(D);
-			} while (!isValidDestination(D));
+			} while (!(isValidDestination(D) or is_Castling));
 		} while (this->legal_board[D.ri][D.ci] == false);
 		highlight(7);
-		Ps[S.ri][S.ci]->move(D);
-		this->update(S, D);
-		this->Print_updated_board(S, D);
+		K= dynamic_cast<King*>(Ps[S.ri][S.ci]);
+		R= dynamic_cast<Rook*>(Ps[S.ri][S.ci]);
+		if (K or R)
+		{
+			Ps[S.ri][S.ci]->moved();
+		}
+		if (is_Castling)
+		{
+			if (K)
+			{
+				Rook* R2 = dynamic_cast<Rook*>(Ps[D.ri][D.ci]);
+				if (R2)
+				{
+					Ps[S.ri][S.ci]->move(D);
+					Ps[D.ri][D.ci]->move(S);
+					swap(Ps[S.ri][S.ci], Ps[D.ri][D.ci]);
+					this->Print_updated_board(D, S);
+				}
+				else
+				{
+					is_Castling = false;
+					Ps[S.ri][S.ci]->move(D);
+					this->update(S, D);
+					this->Print_updated_board(S, D);
+				}
+			}
+			if (R)
+			{
+				King* K2 = dynamic_cast<King*>(Ps[D.ri][D.ci]);
+				if (K2)
+				{
+					Ps[S.ri][S.ci]->move(D);
+					Ps[D.ri][D.ci]->move(S);
+					swap(Ps[S.ri][S.ci], Ps[D.ri][D.ci]);
+					this->Print_updated_board(D, S);
+				}
+				else
+				{
+					is_Castling = false;
+
+					Ps[S.ri][S.ci]->move(D);
+					this->update(S, D);
+					this->Print_updated_board(S, D);
+				}
+			}
+		}
+		else
+		{
+			is_Castling = false;
+			Ps[S.ri][S.ci]->move(D);
+			this->update(S, D);
+			this->Print_updated_board(S, D);
+		}
+		
+		is_Castling = false;
 		if (isPromotion())
 		{
 			Promotion();
-			//system("cls");
 			this->Print_updated_board(S, D);
 		}
 		if (this->is_check())
@@ -651,10 +729,15 @@ void Board::play()
 		if (is_check_mate())
 		{
 			gotoRowCol(15, 130);
+			save_in_file();
 			cout << "GAME OVER";
 			break;
 		}
+		
 		change_turn();
 		hideConsoleCursor();
+		save_in_file();
 	}
+	delete K;
+	delete R;
 }

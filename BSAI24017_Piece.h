@@ -21,6 +21,8 @@ public:
 	COLOR getColor();
 	Position getPositon();
 	void move(Position D);
+	virtual void moved();
 	virtual ~Piece()=default;
+	virtual bool castling(Position D, Board* B);
 };
 
