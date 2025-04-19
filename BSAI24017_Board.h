@@ -24,6 +24,7 @@ class Board
 	void save_in_file();
 	void read_from_file();
 	void init();
+	void FindRook(Position& R);
 public:
 	Board();
 	void play();
@@ -40,5 +41,6 @@ public:
 	void Copying(Board &Copy_Board);
 	void Promotion();
 	bool isPromotion();
+	bool is_Castling_Possible(Position&);
 };
 

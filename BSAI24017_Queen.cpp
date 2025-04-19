@@ -77,3 +77,7 @@ bool Queen::islegal(Position D)
 {
 	return Bishop::islegal(D) or Rook::islegal(D);
 }
+bool Queen::castling(Position D)
+{
+    return false;
+}

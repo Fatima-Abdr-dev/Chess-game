@@ -76,12 +76,3 @@ bool Rook::get_ismoved()
 {
     return ismoved;
 }
-bool  Rook::castling(Position D, Board* B)
-{
-    King* R = dynamic_cast<King*> (B->PieceAt(D));
-    if (R and !R->get_ismoved() and R->getColor() == clr and isHorizontal(this->P, D) and isHorizontalPathClear(B, this->P, D))
-    {
-        return true;
-    }
-    return false;
-}

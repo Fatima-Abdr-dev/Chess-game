@@ -10,7 +10,6 @@ public:
 	virtual bool islegal(Position D);
 	void moved();
 	bool get_ismoved();
-	bool castling(Position D, Board* B)final;
 };
 
 

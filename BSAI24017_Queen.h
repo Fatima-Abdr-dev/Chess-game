@@ -8,6 +8,6 @@ public:
 	Queen(const Queen& _Q, Board* B);
 	void draw(int sr, int sc, char sym = -37)override;
 	bool islegal(Position D);
-
+	bool castling(Position D);
 };
 

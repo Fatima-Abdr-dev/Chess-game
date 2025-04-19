@@ -88,10 +88,10 @@ void Board::Print_updated_board( Position S, Position D)
 		c = 3;
 	color(c);
 	Ps[D.ri][D.ci]->draw(D.ri * 12 + 12 / 2, D.ci * 12 + 12 / 2);
-	if (is_Castling and Ps[S.ri][S.ci]!=nullptr)
+	/*if (is_Castling and Ps[S.ri][S.ci]!=nullptr)
 	{
 		Ps[S.ri][S.ci]->draw(S.ri * 12 + 12 / 2, S.ci * 12 + 12 / 2);
-	}
+	}*/
 	color(7);
 
 
@@ -138,19 +138,6 @@ void Board::compute_legal_moves(Position S)
 	{
 		for (int c = 0;c < 8;c++)
 		{
-			King* K = dynamic_cast<King*>(this->Ps[S.ri][S.ci]);
-			Rook* R = dynamic_cast<Rook*>(this->Ps[S.ri][S.ci]);
-			if(K and K->castling({ i,c }, this) or (R and R->castling({ i,c }, this) and !Copy_Board.is_selfcheck()))
-			{
-				is_Castling = true;
-				this->Copying(Copy_Board);
-				Copy_Board.Ps[S.ri][S.ci]->move({ i,c });
-				Copy_Board.update({ S.ri,S.ci }, { i,c });
-				if (!Copy_Board.is_selfcheck())
-				{
-					this->legal_board[i][c] = true;
-				}
-			}
 			if ( isValidDestination({ i,c }) and Ps[S.ri][S.ci]->islegal({ i,c }))
 			{
 				this->Copying(Copy_Board);
@@ -610,6 +597,75 @@ void Board::read_from_file()
 	else
 		Turn = PBLACK;
 }
+void Board::FindRook(Position& R)
+{
+	for (int i = 0;i < 8;i++)
+	{
+		for (int c = 0;c < 8;c++)
+		{
+			Rook* Ki = dynamic_cast<Rook*> (Ps[i][c]);
+			if (Ki and Ki->getColor() == Turn)
+			{
+				R.ri = i;
+				R.ci = c;
+			}
+		}
+	}
+}
+bool Board::is_Castling_Possible(Position &R)
+{
+	Rook* R1{};
+	Rook* R2{};
+	Position K;
+	IsOpponentKing(K);
+	if (Turn == PBLACK)
+	{
+		R1 = dynamic_cast<Rook*>(Ps[0][0]);
+		R2 = dynamic_cast<Rook*>(Ps[0][7]);
+		if (R1)
+		{
+			R = { R1->getPositon() };
+			if (Ps[K.ri][K.ci]->castling(R, this))
+			{
+				is_Castling = true;
+				return true;
+			}
+		}
+		if (R2)
+		{
+			R = { R2->getPositon() };
+			if (Ps[K.ri][K.ci]->castling(R, this))
+			{
+				is_Castling = true;
+				return true;
+			}
+		}
+	}
+	else
+	{
+		R1 = dynamic_cast<Rook*>(Ps[7][0]);
+		R2 = dynamic_cast<Rook*>(Ps[7][7]);
+		if (R1)
+		{
+			R = { R1->getPositon() };
+			if (Ps[K.ri][K.ci]->castling(R, this))
+			{
+				is_Castling = true;
+				return true;
+			}
+		}
+		if (R2)
+		{
+			R = { R2->getPositon() };
+			if (Ps[K.ri][K.ci]->castling(R, this))
+			{
+				is_Castling = true;
+				return true;
+			}
+		}
+	}
+	return false;
+}
 void Board::play()
 {
 	int choice = 0;
@@ -636,8 +692,9 @@ void Board::play()
 	boarder(12, 12);
 	DisplayGrid(12, 12);
 	this->displayBoard();
+	char k = {};
+	Position R;
 	King* K{};
-	Rook* R{};
 	while (true)
 	{
 		Ply[Turn].display_message();
@@ -652,65 +709,81 @@ void Board::play()
 				} while (!isValidSource(S));
 				compute_legal_moves(S);
 				highlight(5);
+				K = dynamic_cast<King*>(Ps[S.ri][S.ci]);
+				if (K and this->is_Castling_Possible(R))
+				{
+					gotoRowCol(7, 130);
+					cout << "Wants to Do Casting('Y'for Yes and 'N' for No)" << endl;
+					cin >> k;
+					if (k == 'Y' or k == 'y')
+						is_Castling = true;
+					else if (k == 'N' or k == 'n')
+						is_Castling = false;
+					else
+						is_Castling = false;
+				}
+				if (is_Castling == true)
+				{
+					break;
+				}
 				getCoordinates(D);
-			} while (!(isValidDestination(D) or is_Castling));
-		} while (this->legal_board[D.ri][D.ci] == false);
+			} while (!(isValidDestination(D)));
+		} while (this->legal_board[D.ri][D.ci] == false and !is_Castling);
 		highlight(7);
-		K= dynamic_cast<King*>(Ps[S.ri][S.ci]);
-		R= dynamic_cast<Rook*>(Ps[S.ri][S.ci]);
-		if (K or R)
-		{
-			Ps[S.ri][S.ci]->moved();
-		}
 		if (is_Castling)
 		{
-			if (K)
+			if (S.ci < R.ci)
 			{
-				Rook* R2 = dynamic_cast<Rook*>(Ps[D.ri][D.ci]);
-				if (R2)
+				if (Turn == PBLACK)
 				{
-					Ps[S.ri][S.ci]->move(D);
-					Ps[D.ri][D.ci]->move(S);
-					swap(Ps[S.ri][S.ci], Ps[D.ri][D.ci]);
-					this->Print_updated_board(D, S);
+					Ps[S.ri][S.ci]->move({ 0,6 });
+					Ps[R.ri][R.ci]->move({ 0,5 });
+					update(S, { 0,6 });
+					this->Print_updated_board(S, {0,6});
+					update(R, { 0,5 });
+					this->Print_updated_board(R, {0,5});
 				}
-				else
+				else if (Turn == PWHITE)
 				{
-					is_Castling = false;
-					Ps[S.ri][S.ci]->move(D);
-					this->update(S, D);
-					this->Print_updated_board(S, D);
+					Ps[S.ri][S.ci]->move({ 7,6 });
+					Ps[R.ri][R.ci]->move({ 7,5 });
+					update(S, { 7,6 });
+					this->Print_updated_board(S, {7,6});
+					update(R, { 7,5 });
+					this->Print_updated_board(R,{7,5});
 				}
 			}
-			if (R)
+			else if (S.ci > R.ci)
 			{
-				King* K2 = dynamic_cast<King*>(Ps[D.ri][D.ci]);
-				if (K2)
+				if (Turn == PBLACK)
 				{
-					Ps[S.ri][S.ci]->move(D);
-					Ps[D.ri][D.ci]->move(S);
-					swap(Ps[S.ri][S.ci], Ps[D.ri][D.ci]);
-					this->Print_updated_board(D, S);
+					Ps[S.ri][S.ci]->move({ 0,2 });
+					Ps[R.ri][R.ci]->move({ 0,3 });
+					update(S, { 0,2 });
+					this->Print_updated_board(S, {0,2});
+					update(R, { 0,3 });
+					this->Print_updated_board(R, {0,3});
 				}
-				else
+				else if (Turn == PWHITE)
 				{
-					is_Castling = false;
+					Ps[S.ri][S.ci]->move({ 7,2 });
+					Ps[R.ri][R.ci]->move({ 7,3 });
+					update(S, { 7,2 });
+					this->Print_updated_board(S, {7,2});
+					update(R, { 7,3 });
+					this->Print_updated_board(R, {7,3});
+				}
 
-					Ps[S.ri][S.ci]->move(D);
-					this->update(S, D);
-					this->Print_updated_board(S, D);
-				}
 			}
 		}
 		else
 		{
-			is_Castling = false;
 			Ps[S.ri][S.ci]->move(D);
 			this->update(S, D);
 			this->Print_updated_board(S, D);
 		}
-		
 		is_Castling = false;
+		
 		if (isPromotion())
 		{
 			Promotion();
@@ -738,6 +811,4 @@ void Board::play()
 		hideConsoleCursor();
 		save_in_file();
 	}
-	delete K;
-	delete R;
 }
